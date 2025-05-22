@@ -1,0 +1,33 @@
+services:
+    simpleapi:
+        build: ./api/simpleapi
+        networks:
+          - tp1-network
+        depends_on:
+          - database
+        environment:
+          - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+          - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+          - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+          - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=${SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT}
+
+    database:
+        build: ./database
+        networks:
+          - tp1-network
+        volumes:
+          - type: bind
+            source: ./postgres_data
+            target: /var/lib/postgresql/data/
+
+    http:
+        build: ./http
+        ports:
+          - 9000:80
+        networks:
+          - tp1-network
+        depends_on:
+          - simpleapi
+
+networks:
+  tp1-network:
