@@ -2,9 +2,17 @@ services:
     simpleapi:
         build: ./api/simpleapi
         networks:
-          - tp1-network
+          - proxy-net
+          - db-net
         depends_on:
-          - database
+          database:
+            condition: service_healthy
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:8080"]
+          interval: 10s
+          retries: 5
+          start_period: 30s
+          timeout: 10s
         environment:
           - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
           - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
@@ -14,20 +22,31 @@ services:
     database:
         build: ./database
         networks:
-          - tp1-network
+          - db-net
         volumes:
           - type: bind
             source: ./postgres_data
             target: /var/lib/postgresql/data/
+        environment:
+          - POSTGRES_USER=${POSTGRES_USER}
+          - POSTGRES_DB=${POSTGRES_DB}
+        healthcheck:
+          test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+          interval: 10s
+          retries: 5
+          start_period: 30s
+          timeout: 10s
 
     http:
         build: ./http
         ports:
           - 9000:80
         networks:
-          - tp1-network
+          - proxy-net
         depends_on:
-          - simpleapi
+          simpleapi:
+            condition: service_healthy
 
 networks:
-  tp1-network:
+  proxy-net:
+  db-net:
